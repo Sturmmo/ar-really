@@ -7,11 +7,16 @@ using UnityEngine.Android;
 
 public class GPSZoneTester : MonoBehaviour
 {
+    private static GPSZoneTester instance;
+    public static GPSZoneTester Instance
+    {
+        get { return instance; }
+    }
     [Header("Ziel-Koordinaten")]
     [Description("Trage hier die Koordinaten ein, die du in der Fake-GPS-App ansteuerst.")]
 
-    public double targetLatitude = 49.789628;
-    public double targetLongitude = 9.919055;
+    public double targetLatitude = 49.78828;
+    public double targetLongitude = 9.92385;
     public float triggerDistance = 10f;
 
     [Header("Zuweisungen aus der Szene")]
@@ -27,6 +32,34 @@ public class GPSZoneTester : MonoBehaviour
     private bool hasSpawned = false;
     private bool isGPSRunning = false;
 
+    public double savedLatitude;
+    public double savedLongitude;
+
+    public double CurrentLatitude
+    {
+        get { return Input.location.lastData.latitude; }
+    }
+
+    public double CurrentLongitude
+    {
+        get { return Input.location.lastData.longitude; }
+    }
+
+    private void Awake()
+    {
+        Debug.Log("GPSZoneTester Awake auf: " + gameObject.name);
+
+        if (instance == null)
+        {
+            instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
     void Start()
     {
         if (coordinatesText != null) coordinatesText.text = "Initialisiere GPS...";
@@ -39,6 +72,11 @@ public class GPSZoneTester : MonoBehaviour
 
         double currentLat = Input.location.lastData.latitude;
         double currentLon = Input.location.lastData.longitude;
+
+        savedLatitude = currentLat;
+        savedLongitude = currentLon;
+
+        Debug.Log("Aktuelles GPS: " + currentLat + " / " + currentLon);
 
         double distance = CalculateDistance(currentLat, currentLon, targetLatitude, targetLongitude);
 
@@ -123,7 +161,7 @@ public class GPSZoneTester : MonoBehaviour
             routeText.text = "Festungs-Chroniken";
         }
 
-        if (dist <= 200)
+        if (dist <= 500)
         {
             if (statusText != null)
             {
