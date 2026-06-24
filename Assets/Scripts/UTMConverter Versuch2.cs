@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
-using System; // <--- Wichtig f�r die pr�zisen Math-Klassen (Double)
+using System; // <--- Wichtig f r die pr zisen Math-Klassen (Double)
+using TMPro;
 
 public class Wgs84ToUtm32Converter : MonoBehaviour
 {
@@ -10,7 +11,7 @@ public class Wgs84ToUtm32Converter : MonoBehaviour
 
 
 
-    [Header("UTM-Ergebnis (Schreibgesch�tzt im Playmode)")]
+    [Header("UTM-Ergebnis (Schreibgesch tzt im Playmode)")]
     public double positionX;
     public double positionZ;
 
@@ -21,6 +22,9 @@ public class Wgs84ToUtm32Converter : MonoBehaviour
     public double versatzZ = 0.0;
 
     public GameObject outOfBoundsPanel;
+    public RectTransform mapImage;
+    public TMP_Text debugText;
+    public RectTransform playerMarker;
 
     void Start()
     {
@@ -56,24 +60,58 @@ public class Wgs84ToUtm32Converter : MonoBehaviour
         Debug.Log($"[UTM] Objekt positioniert bei X: {unityX} | Z: {unityZ} (Original UTM: E {positionX:F2}, N {positionZ:F2})");
     }
 
+    void Update()
+    {
+        if (GPSZoneTester.Instance == null)
+        {
+            Debug.Log("GPSZoneTester nicht gefunden!");
+            return;
+        }
 
+        latitude = GPSZoneTester.Instance.savedLatitude;
+        longitude = GPSZoneTester.Instance.savedLongitude;
+
+        ConvertWgs84ToUtm32(latitude, longitude, out double utmX, out double utmZ);
+
+        positionX = utmX;
+        positionZ = utmZ;
+
+        float unityX = (float)(positionX - versatzX);
+        float unityZ = (float)(positionZ - versatzZ);
+
+        playerMarker.anchoredPosition = new Vector2(unityX - 500, unityZ - 500);
+        
+        debugText.text =
+        "X: " + unityX +
+        "\nZ: " + unityZ;
+
+        if (unityX < 0 || unityX > 1000 ||
+            unityZ < 0 || unityZ > 1000)
+        {
+            outOfBoundsPanel.SetActive(true);
+        }
+        else
+        {
+            outOfBoundsPanel.SetActive(false);
+        }
+    }
 
     /// <summary>
-    /// Berechnet UTM Zone 32N (WGS84) Koordinaten aus Breitengrad und L�ngengrad.
+    /// Berechnet UTM Zone 32N (WGS84) Koordinaten aus Breitengrad und L ngengrad.
     /// </summary>
     private void ConvertWgs84ToUtm32(double lat, double lon, out double utmX, out double utmZ)
     {
-        // Konstanten f�r das WGS84 Ellipsoid
-        const double a = 6378137.0; // Gro�e Halbachse
+        // Konstanten f r das WGS84 Ellipsoid
+        const double a = 6378137.0; // Gro e Halbachse
         const double f = 1.0 / 298.257223563; // Abplattung
-        const double k0 = 0.9996; // Skalierungsfaktor f�r UTM
+        const double k0 = 0.9996; // Skalierungsfaktor f r UTM
 
-        // Zone 32 Zentralmeridian ist 9� Ost
+        // Zone 32 Zentralmeridian ist 9  Ost
         const double lonOrigin = 9.0;
         const double falseEasting = 500000.0;
         const double falseNorthing = 0.0;
 
-        // Umrechnung in Bogenma� (Nutzt nun System.Math.PI statt Mathf)
+        // Umrechnung in Bogenma  (Nutzt nun System.Math.PI statt Mathf)
         double latRad = lat * (Math.PI / 180.0);
         double lonRad = lon * (Math.PI / 180.0);
         double lonOriginRad = lonOrigin * (Math.PI / 180.0);
@@ -87,7 +125,7 @@ public class Wgs84ToUtm32Converter : MonoBehaviour
         double c = ePrimeSq * Math.Cos(latRad) * Math.Cos(latRad);
         double aCoeff = (lonRad - lonOriginRad) * Math.Cos(latRad);
 
-        // Berechnung der Meridianbogenl�nge (M)
+        // Berechnung der Meridianbogenl nge (M)
         double m = a * ((1.0 - eSq / 4.0 - 3.0 * eSq * eSq / 64.0 - 5.0 * eSq * eSq * eSq / 256.0) * latRad
                    - (3.0 * eSq / 8.0 + 3.0 * eSq * eSq / 32.0 + 45.0 * eSq * eSq * eSq / 1024.0) * Math.Sin(2.0 * latRad)
                    + (15.0 * eSq * eSq / 256.0 + 45.0 * eSq * eSq * eSq / 1024.0) * Math.Sin(4.0 * latRad)
